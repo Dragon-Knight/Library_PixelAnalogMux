@@ -2,11 +2,9 @@
 #include <inttypes.h>
 #include <EasyPinD.h>
 
-template <uint8_t _count = 0> 
+template <uint8_t _count = 0, uint16_t _tick_time = 25> 
 class AnalogMux
 {
-	static constexpr uint16_t _tick_time = 25;
-	
 	using func_adc_req_t = uint16_t (*)(uint8_t address);
 	using func_result_t = void (*)(uint8_t address, uint16_t value);
 	
@@ -23,19 +21,17 @@ class AnalogMux
 
 		void Init()
 		{
+			for(EasyPinD &pin : _digital)
+			{
+				pin.Init();
+			}
+			
 			return;
 		}
-
+		
 		uint16_t Get(uint8_t address)
 		{
-			for(uint8_t i = 0; i < _count; ++i)
-			{
-				if(address & (1 << i)){
-					_digital[i].On();
-				} else {
-					_digital[i].Off();
-				}
-			}
+			_SetPins(address);
 			
 			return _callback_adc_req(address);
 		}
@@ -56,6 +52,21 @@ class AnalogMux
 		}
 
 	private:
+
+		void _SetPins(uint8_t address)
+		{
+			for(uint8_t i = 0; i < _count; ++i)
+			{
+				if(address & (1 << i)){
+					_digital[i].On();
+				} else {
+					_digital[i].Off();
+				}
+			}
+			asm("nop; nop; nop; \n");
+			
+			return;
+		}
 		
 		func_adc_req_t _callback_adc_req = nullptr;
 		func_result_t _callback_result = nullptr;
