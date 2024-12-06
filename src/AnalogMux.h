@@ -14,7 +14,8 @@ class AnalogMux
 		AnalogMux(func_adc_req_t adc_req, func_result_t result, DPinTs... dpins) : 
 			_callback_adc_req(adc_req), 
 			_callback_result(result),
-			_digital{ EasyPinD(dpins.Port, {dpins.Pin, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, GPIO_SPEED_FREQ_HIGH})... }
+			_digital{ EasyPinD(dpins.Port, {dpins.Pin, GPIO_MODE_OUTPUT_PP, GPIO_NOPULL, GPIO_SPEED_FREQ_HIGH})... },
+			_adc_value{}
 		{
 			static_assert(sizeof...(dpins) == _count, "Incorrect number of digital pins provided");
 		}
@@ -41,15 +42,16 @@ class AnalogMux
 			if(time - _last_tick < _tick_time) return;
 			_last_tick = time;
 			
-			uint16_t adc_raw;
 			for(uint8_t addr = 0; addr < (1 << _count); ++addr)
 			{
-				adc_raw = Get(addr);
-				_callback_result(addr, adc_raw);
+				_adc_value[addr] = Get(addr);
+				_callback_result(addr, _adc_value[addr]);
 			}
 			
 			return;
 		}
+
+		const uint16_t *adc_value = _adc_value;
 
 	private:
 
@@ -72,6 +74,7 @@ class AnalogMux
 		func_result_t _callback_result = nullptr;
 		
 		EasyPinD _digital[_count];
+		uint16_t _adc_value[(1 << _count)];
 		
 		uint32_t _last_tick = 0;
 };
